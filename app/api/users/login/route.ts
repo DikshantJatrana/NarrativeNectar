@@ -1,12 +1,10 @@
-import User from "@/model/userModel";
-import { connect } from "@/lib/connectDB";
 import { NextRequest, NextResponse } from "next/server";
 import { loginValidator } from "@/lib/zod";
 import { setToken } from "@/lib/jwt";
 import bcryptjs from "bcryptjs";
 import { UserInterface } from "@/lib/interfaceTypescript";
-
-connect();
+import { client } from "@/sanity/lib/client";
+import { AUTHOR_BY_EMAIL_QUERY } from "@/sanity/lib/queries";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ msg: "Invalid details" }, { status: 400 });
     }
-    const newUser = await User.findOne({ email }).select("+password");
+    const newUser = await client.fetch(AUTHOR_BY_EMAIL_QUERY, { email: email });
     if (!newUser) {
       return NextResponse.json({ msg: "User not Found" }, { status: 400 });
     }
@@ -28,10 +26,9 @@ export async function POST(req: NextRequest) {
     }
 
     const token = setToken({
-      _id: newUser._id,
+      id: newUser.id,
       email: newUser.email,
     } as UserInterface);
-
     const response = NextResponse.json(
       { msg: "User created successfully", newUser },
       { status: 201 }
